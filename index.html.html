@@ -1,0 +1,460 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Pembayaran L'ave</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: satu kolom sempit. Daftar barang per kategori, bar total menempel di bawah, lalu layar pembayaran dengan rincian, total, dan QR. */
+:root {
+  --bg: #eef1ef;
+  --surface: #ffffff;
+  --ink: #12201b;
+  --muted: #5b6b64;
+  --line: #d5dcd8;
+  --accent: #0e5a47;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcebe5;
+  --warn-bg: #fff1d6;
+  --warn-ink: #6b4500;
+  --f-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --f-body: "Figtree", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1613; --surface: #17211d; --ink: #e8efec; --muted: #9aaba4; --line: #2a3732;
+    --accent: #5ccba8; --accent-ink: #06251c; --accent-soft: #1e3a31;
+    --warn-bg: #3a2d10; --warn-ink: #f0ce8a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1613; --surface: #17211d; --ink: #e8efec; --muted: #9aaba4; --line: #2a3732;
+  --accent: #5ccba8; --accent-ink: #06251c; --accent-soft: #1e3a31;
+  --warn-bg: #3a2d10; --warn-ink: #f0ce8a; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.45;
+  padding-block: 28px 140px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 680px; margin-inline: auto; display: flex; flex-direction: column; gap: 28px; }
+
+header { display: flex; flex-direction: column; gap: 6px; }
+.brand { font-family: var(--f-display); font-weight: 700; font-size: clamp(30px, 7vw, 42px); letter-spacing: -0.02em; line-height: 1.05; margin: 0; }
+.lede { margin: 0; color: var(--muted); max-width: 52ch; }
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.field input {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; width: 100%;
+}
+.field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group h2 {
+  margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  font-family: var(--f-display); font-size: 20px; letter-spacing: -0.01em;
+}
+.group h2 small { font-family: var(--f-body); font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+
+.item {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+}
+.item.on { border-color: var(--accent); background: var(--accent-soft); }
+.item.off { opacity: 0.6; }
+.pick { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; cursor: pointer; }
+.item.off .pick { cursor: not-allowed; }
+.pick input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.box {
+  flex: none; width: 22px; height: 22px; border: 2px solid var(--muted); border-radius: 6px; position: relative; background: var(--surface);
+}
+.pick input:checked + .box { background: var(--accent); border-color: var(--accent); }
+.pick input:checked + .box::after {
+  content: ""; position: absolute; left: 6px; top: 1px; width: 6px; height: 12px;
+  border: solid var(--accent-ink); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
+}
+.pick input:focus-visible + .box { outline: 2px solid var(--accent); outline-offset: 2px; }
+.meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.nm { font-weight: 600; overflow-wrap: anywhere; }
+.pr { font-family: var(--f-mono); font-size: 13px; font-weight: 500; color: var(--muted); }
+
+.qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.qty button {
+  width: 34px; height: 34px; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 18px; cursor: pointer; border-radius: 8px;
+}
+.qty button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.qty output { min-width: 26px; text-align: center; font-family: var(--f-mono); font-weight: 600; }
+
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  background: var(--surface); border-top: 1px solid var(--line);
+  padding-top: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.bar-in { max-width: 680px; margin-inline: auto; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.tot { display: flex; flex-direction: column; min-width: 0; }
+.tot span { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.tot strong { font-family: var(--f-mono); font-size: 22px; font-weight: 600; }
+
+.btn {
+  font: inherit; font-weight: 600; border-radius: 10px; padding: 12px 18px; cursor: pointer;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+}
+.btn:disabled { background: var(--line); border-color: var(--line); color: var(--muted); cursor: not-allowed; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: flex; flex-direction: column; gap: 18px; }
+.panel h2 { margin: 0; font-family: var(--f-display); font-size: 26px; letter-spacing: -0.01em; }
+.code { font-family: var(--f-mono); font-size: 13px; color: var(--muted); }
+.lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.lines li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+.lines .l-name { min-width: 0; overflow-wrap: anywhere; }
+.lines .l-name small { display: block; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+.lines .l-sub { font-family: var(--f-mono); font-weight: 500; white-space: nowrap; }
+.grand { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.grand span { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.grand strong { font-family: var(--f-mono); font-size: clamp(28px, 8vw, 36px); font-weight: 600; color: var(--accent); }
+
+/* Kode QR harus hitam di atas putih agar terbaca pemindai, di tema apa pun. */
+.qr { background: #ffffff; padding: 12px; border-radius: 12px; width: min(300px, 100%); margin-inline: auto; border: 1px solid var(--line); }
+.qr svg { display: block; width: 100%; height: auto; }
+.qr-cap { text-align: center; margin: 0; color: var(--muted); font-size: 14px; }
+.note { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 15px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.status { min-height: 1.4em; margin: 0; font-size: 14px; color: var(--accent); }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1 class="brand" id="brand"></h1>
+    <p class="lede">Pilih barang yang kamu pesan. Total harga dihitung otomatis, lalu QR pembayaran muncul setelah kamu menekan tombol bayar.</p>
+  </header>
+
+  <div id="order" class="wrap" style="gap:28px">
+    <div class="field">
+      <label for="cust">Nama pemesan</label>
+      <input id="cust" type="text" autocomplete="name" placeholder="Contoh: Nendra">
+    </div>
+    <div id="catalog" class="wrap" style="gap:28px"></div>
+  </div>
+
+  <section id="pay" class="panel" hidden aria-labelledby="pay-title">
+    <div>
+      <h2 id="pay-title">Konfirmasi pembayaran</h2>
+      <div class="code" id="pay-meta"></div>
+    </div>
+    <ul class="lines" id="pay-lines"></ul>
+    <div class="grand"><span>Total bayar</span><strong id="pay-total"></strong></div>
+    <div id="demo-note" class="note" hidden></div>
+    <div class="qr" id="qr" role="img" aria-label="Kode QR pembayaran"></div>
+    <p class="qr-cap">Scan dengan aplikasi bank atau e-wallet.</p>
+    <ol class="steps">
+      <li>Buka aplikasi bank atau e-wallet, pilih Scan atau Bayar.</li>
+      <li>Scan QR di atas dan cek nominalnya sama dengan total bayar.</li>
+      <li>Selesaikan pembayaran, lalu kirim bukti bayar ke admin toko.</li>
+    </ol>
+    <div class="actions">
+      <button type="button" class="btn" id="copy-order">Salin rincian pesanan</button>
+      <button type="button" class="btn ghost" id="copy-total">Salin total</button>
+      <button type="button" class="btn ghost" id="back">Ubah pesanan</button>
+    </div>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+  </section>
+</div>
+
+<div class="bar" id="bar">
+  <div class="bar-in">
+    <div class="tot"><span id="count">Belum ada barang dipilih</span><strong id="total">Rp0</strong></div>
+    <button type="button" class="btn" id="go" disabled>Lihat QR pembayaran</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+/* ===== PENGATURAN TOKO — ubah bagian ini saja ===== */
+var STORE_NAME = "L'ave";
+
+/* Tempel teks QRIS statis toko di sini (hasil scan QRIS toko dengan aplikasi pembaca QR, diawali 000201...).
+   Jika diisi, QR otomatis memuat nominal total. Jika kosong, halaman memakai QR contoh. */
+var QRIS_STATIC = "";
+
+/* price: angka rupiah. null = harga belum diisi, barang tampil tapi belum bisa dipilih. */
+var CATALOG = [
+  { id: "tops", label: "Tops", items: [
+    { name: "L'aveniqlo", price: 149000 },
+    { name: "L'avenvis", price: 179000 },
+    { name: "L'avenara", price: 159000 },
+    { name: "L'avenorthface", price: 399000 },
+    { name: "L'avenpatagonia", price: 449000 },
+    { name: "L'avenarhartt", price: 349000 }
+  ]},
+  { id: "bottoms", label: "Bottoms", items: [
+    { name: "L'venirRivage", price: null },
+    { name: "L'venirEte", price: null },
+    { name: "L'aveMonceau", price: null },
+    { name: "L'aveTrouser", price: null }
+  ]},
+  { id: "shoes", label: "Shoes", items: [
+    { name: "L'avenuma", price: null },
+    { name: "L'avenidas", price: null },
+    { name: "L'avenike", price: null },
+    { name: "L'avenbirken", price: null },
+    { name: "L'avenianas", price: null },
+    { name: "L'avenwallow", price: null }
+  ]},
+  { id: "accessories", label: "Accessories", items: [
+    { name: "L' Atelier Collection", price: null },
+    { name: "L' Essential Collection", price: null }
+  ]}
+];
+/* ===== akhir pengaturan ===== */
+
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var rp = function (n) { return "Rp" + Number(n).toLocaleString("id-ID"); };
+  var qty = {};          // key -> jumlah
+  var items = {};        // key -> {name, price, cat}
+  var orderCode = "";
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  $("brand").textContent = STORE_NAME;
+  document.title = "Pembayaran " + STORE_NAME;
+
+  /* ---------- daftar barang ---------- */
+  var catalogEl = $("catalog");
+  CATALOG.forEach(function (cat) {
+    var sec = el("section", "group");
+    var h = el("h2", null, cat.label);
+    h.appendChild(el("small", null, cat.items.length + " pilihan"));
+    sec.appendChild(h);
+    var ul = el("ul", "list");
+    cat.items.forEach(function (it, i) {
+      var key = cat.id + "-" + i;
+      items[key] = { name: it.name, price: it.price, cat: cat.label };
+      var ready = typeof it.price === "number";
+      var li = el("li", "item" + (ready ? "" : " off"));
+      li.id = "row-" + key;
+
+      var lab = el("label", "pick");
+      var cb = el("input");
+      cb.type = "checkbox"; cb.id = "chk-" + key; cb.disabled = !ready;
+      lab.appendChild(cb);
+      lab.appendChild(el("span", "box"));
+      var meta = el("span", "meta");
+      meta.appendChild(el("span", "nm", it.name));
+      meta.appendChild(el("span", "pr", ready ? rp(it.price) : "Harga menyusul"));
+      lab.appendChild(meta);
+      li.appendChild(lab);
+
+      var q = el("div", "qty");
+      q.hidden = true;
+      var minus = el("button", null, "−"); minus.type = "button"; minus.setAttribute("aria-label", "Kurangi " + it.name);
+      var out = el("output", null, "1"); out.id = "q-" + key;
+      var plus = el("button", null, "+"); plus.type = "button"; plus.setAttribute("aria-label", "Tambah " + it.name);
+      q.appendChild(minus); q.appendChild(out); q.appendChild(plus);
+      li.appendChild(q);
+
+      function set(n) {
+        if (n <= 0) { delete qty[key]; cb.checked = false; }
+        else { qty[key] = Math.min(n, 99); cb.checked = true; out.textContent = qty[key]; }
+        q.hidden = !qty[key];
+        li.classList.toggle("on", !!qty[key]);
+        refresh();
+      }
+      cb.addEventListener("change", function () { set(cb.checked ? 1 : 0); });
+      minus.addEventListener("click", function () { set((qty[key] || 1) - 1); });
+      plus.addEventListener("click", function () { set((qty[key] || 0) + 1); });
+
+      ul.appendChild(li);
+    });
+    sec.appendChild(ul);
+    catalogEl.appendChild(sec);
+  });
+
+  function selected() {
+    return Object.keys(qty).map(function (k) {
+      var it = items[k];
+      return { name: it.name, cat: it.cat, price: it.price, qty: qty[k], sub: it.price * qty[k] };
+    });
+  }
+  function totals() {
+    var s = selected(), t = 0, n = 0;
+    s.forEach(function (x) { t += x.sub; n += x.qty; });
+    return { lines: s, total: t, count: n };
+  }
+  function refresh() {
+    var t = totals();
+    $("total").textContent = rp(t.total);
+    $("count").textContent = t.count ? t.count + " barang dipilih" : "Belum ada barang dipilih";
+    $("go").disabled = t.count === 0;
+  }
+
+  /* ---------- QRIS dinamis ---------- */
+  function crc16(s) {
+    var crc = 0xFFFF;
+    for (var i = 0; i < s.length; i++) {
+      crc ^= s.charCodeAt(i) << 8;
+      for (var j = 0; j < 8; j++) {
+        crc = (crc & 0x8000) ? ((crc << 1) ^ 0x1021) : (crc << 1);
+        crc &= 0xFFFF;
+      }
+    }
+    return crc.toString(16).toUpperCase().padStart(4, "0");
+  }
+  function qrisWithAmount(payload, amount) {
+    var tags = [], pos = 0, s = payload.replace(/\s+/g, "");
+    while (pos + 4 <= s.length) {
+      var tag = s.substr(pos, 2), len = parseInt(s.substr(pos + 2, 2), 10);
+      if (isNaN(len)) throw new Error("QRIS tidak valid");
+      tags.push({ tag: tag, val: s.substr(pos + 4, len) });
+      pos += 4 + len;
+    }
+    tags = tags.filter(function (x) { return x.tag !== "54" && x.tag !== "63"; });
+    tags.forEach(function (x) { if (x.tag === "01") x.val = "12"; });
+    var at = tags.findIndex(function (x) { return x.tag > "54"; });
+    var amt = { tag: "54", val: String(Math.round(amount)) };
+    if (at < 0) tags.push(amt); else tags.splice(at, 0, amt);
+    var body = tags.map(function (x) { return x.tag + String(x.val.length).padStart(2, "0") + x.val; }).join("") + "6304";
+    return body + crc16(body);
+  }
+
+  /* ---------- gambar QR (SVG buatan sendiri) ---------- */
+  function drawQR(text) {
+    var box = $("qr");
+    box.textContent = "";
+    if (typeof qrcode !== "function") {
+      box.appendChild(el("p", null, "QR belum bisa dimuat. Periksa koneksi lalu muat ulang halaman."));
+      return;
+    }
+    var q = qrcode(0, "M");
+    q.addData(text); q.make();
+    var n = q.getModuleCount(), m = 4, d = "";
+    for (var r = 0; r < n; r++) {
+      var c = 0;
+      while (c < n) {
+        if (q.isDark(r, c)) {
+          var s = c;
+          while (c < n && q.isDark(r, c)) c++;
+          d += "M" + (s + m) + " " + (r + m) + "h" + (c - s) + "v1h-" + (c - s) + "z";
+        } else c++;
+      }
+    }
+    var size = n + m * 2;
+    var ns = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 " + size + " " + size);
+    svg.setAttribute("shape-rendering", "crispEdges");
+    var bg = document.createElementNS(ns, "rect");
+    bg.setAttribute("width", size); bg.setAttribute("height", size); bg.setAttribute("fill", "#ffffff");
+    var p = document.createElementNS(ns, "path");
+    p.setAttribute("d", d); p.setAttribute("fill", "#000000");
+    svg.appendChild(bg); svg.appendChild(p);
+    box.appendChild(svg);
+  }
+
+  /* ---------- layar pembayaran ---------- */
+  function newCode() {
+    var d = new Date(), a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", r = "";
+    for (var i = 0; i < 4; i++) r += a[Math.floor(Math.random() * a.length)];
+    return "ORD-" + String(d.getDate()).padStart(2, "0") + String(d.getMonth() + 1).padStart(2, "0") + "-" + r;
+  }
+  function orderText() {
+    var t = totals(), name = $("cust").value.trim();
+    var out = ["Pesanan " + STORE_NAME + " " + orderCode];
+    if (name) out.push("Atas nama: " + name);
+    t.lines.forEach(function (l) { out.push("- " + l.name + " x" + l.qty + " = " + rp(l.sub)); });
+    out.push("Total: " + rp(t.total));
+    return out.join("\n");
+  }
+  function flash(msg) { $("status").textContent = msg; }
+
+  $("go").addEventListener("click", function () {
+    var t = totals();
+    if (!t.count) return;
+    orderCode = newCode();
+    var name = $("cust").value.trim();
+    $("pay-meta").textContent = orderCode + (name ? " · " + name : "");
+    var ul = $("pay-lines"); ul.textContent = "";
+    t.lines.forEach(function (l) {
+      var li = el("li");
+      var left = el("div", "l-name", l.name);
+      left.appendChild(el("small", null, l.qty + " × " + rp(l.price)));
+      li.appendChild(left);
+      li.appendChild(el("div", "l-sub", rp(l.sub)));
+      ul.appendChild(li);
+    });
+    $("pay-total").textContent = rp(t.total);
+
+    var payload, demo = false;
+    if (QRIS_STATIC.trim()) {
+      try { payload = qrisWithAmount(QRIS_STATIC.trim(), t.total); }
+      catch (e) { payload = null; }
+    }
+    if (!payload) {
+      demo = true;
+      payload = "CONTOH " + STORE_NAME + " " + orderCode + " TOTAL " + t.total;
+    }
+    var note = $("demo-note");
+    note.hidden = !demo;
+    if (demo) note.textContent = QRIS_STATIC.trim()
+      ? "Kode QRIS toko tidak terbaca, jadi QR di bawah hanya contoh dan belum bisa dipakai membayar. Periksa isi QRIS_STATIC."
+      : "Ini QR contoh dan belum bisa dipakai membayar. Isi QRIS_STATIC dengan kode QRIS toko supaya QR memuat nominal total.";
+    drawQR(payload);
+
+    flash("");
+    $("order").hidden = true;
+    $("bar").hidden = true;
+    $("pay").hidden = false;
+    window.scrollTo(0, 0);
+  });
+
+  $("back").addEventListener("click", function () {
+    $("pay").hidden = true;
+    $("order").hidden = false;
+    $("bar").hidden = false;
+    window.scrollTo(0, 0);
+  });
+
+  function copy(text, okMsg) {
+    function fallback() {
+      try {
+        var ta = el("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        var ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        flash(ok ? okMsg : "Salin manual: " + text);
+      } catch (e) { flash("Salin manual: " + text); }
+    }
+    try {
+      navigator.clipboard.writeText(text).then(function () { flash(okMsg); }, fallback);
+    } catch (e) { fallback(); }
+  }
+  $("copy-order").addEventListener("click", function () { copy(orderText(), "Rincian pesanan tersalin."); });
+  $("copy-total").addEventListener("click", function () { copy(String(totals().total), "Total tersalin: " + rp(totals().total)); });
+
+  refresh();
+})();
+</script>
+
+</body></html>
